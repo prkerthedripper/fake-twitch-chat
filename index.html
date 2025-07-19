@@ -1,0 +1,540 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fake Twitch Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background: transparent;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .chat-widget {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            width: 350px;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+            .chat-widget.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+        .chat-header {
+            background: linear-gradient(135deg, #9146ff, #7c3aed);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(145, 70, 255, 0.3);
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .twitch-icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 6px;
+            transition: opacity 0.3s ease;
+        }
+
+            .control-buttons.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+            .control-btn:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .control-btn.active {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+        .chat-container {
+            background: rgba(24, 24, 27, 0.75);
+            border: 1px solid #9146ff;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            height: 600px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-messages {
+            height: 100%;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .chat-message {
+            margin-bottom: 4px;
+            line-height: 1.4;
+            font-size: 13px;
+            word-wrap: break-word;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .username {
+            font-weight: 700;
+            margin-right: 4px;
+        }
+
+        .message-text {
+            color: #efeff1;
+        }
+
+        .hide-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #9146ff, #7c3aed);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(145, 70, 255, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+            .hide-toggle:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(145, 70, 255, 0.5);
+            }
+
+        .controls-toggle {
+            position: absolute;
+            top: 20px;
+            right: 140px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+            .controls-toggle:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(255, 107, 107, 0.5);
+            }
+
+        .status-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00f593;
+            transition: background 0.3s;
+        }
+
+            .status-indicator.paused {
+                background: #ff6b6b;
+            }
+
+        .color-1 {
+            color: #FF69B4;
+        }
+
+        .color-2 {
+            color: #1E90FF;
+        }
+
+        .color-3 {
+            color: #32CD32;
+        }
+
+        .color-4 {
+            color: #FFD700;
+        }
+
+        .color-5 {
+            color: #FF6347;
+        }
+
+        .color-6 {
+            color: #9370DB;
+        }
+
+        .color-7 {
+            color: #00CED1;
+        }
+
+        .color-8 {
+            color: #FFA500;
+        }
+
+        .color-9 {
+            color: #FF1493;
+        }
+
+        .color-10 {
+            color: #00FF7F;
+        }
+
+        .color-11 {
+            color: #DC143C;
+        }
+
+        .color-12 {
+            color: #7B68EE;
+        }
+
+        .color-13 {
+            color: #00BFFF;
+        }
+
+        .color-14 {
+            color: #ADFF2F;
+        }
+
+        .color-15 {
+            color: #FF4500;
+        }
+    </style>
+</head>
+<body>
+    <button class="controls-toggle" id="controlsToggle">Hide Controls</button>
+    <button class="hide-toggle" id="hideToggle">Hide Chat</button>
+
+    <div class="chat-widget" id="chatWidget">
+        <div class="chat-header" id="chatHeader">
+            <div class="chat-title">
+                <svg class="twitch-icon" viewBox="0 0 24 24">
+                    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+                </svg>
+                Stream Chat
+            </div>
+            <div class="control-buttons">
+                <button class="control-btn" id="pauseBtn" title="Pause/Resume">⏸️</button>
+                <button class="control-btn" id="clearBtn" title="Clear Chat">🗑️</button>
+            </div>
+            <div class="status-indicator" id="statusIndicator"></div>
+        </div>
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages"></div>
+        </div>
+    </div>
+
+    <script>
+        const usernames = [
+            'xXGamerGod2005Xx', 'PoggersChamp', 'NotYourMom', 'SussyBaka420', 'CheetoFingers',
+            'BigChungusLover', 'TikTokFamous', 'GenZVibes', 'MainCharacterEnergy', 'TouchGrass',
+            'Cringe_Lord', 'SkibidiToilet', 'YeetMaster3000', 'NoCapFr', 'ItsGiving',
+            'SerialKillerVibes', 'PlantMom', 'CoffeeAddict', 'ProcrastinationNation', 'AnxietyGremlin',
+            'DepressionMeal', 'TherapyNeeded', 'BrokeMillennial', 'StudentDebt', 'RentIsTooHigh',
+            'ClimateAnxiety', 'VoidScreaming', 'ExistentialDread', 'ChaoticNeutral', 'Unhinged',
+            'FerallyCute', 'SoftBoi', 'CryptoBro', 'NFTGirl', 'MetaverseMom',
+            'TwitchPrime', 'SubToMe', 'FollowForFollow', 'StreamerSimp', 'ModAbuse',
+            'BannedFromChat', 'TimeoutGang', 'RaidShadowLegends', 'NordVPN', 'SquareSpace',
+            'HelloFreshCode', 'RayconEarbuds', 'ManscapedAd', 'SkillsharePromo', 'AudibleBooks'
+        ];
+
+        const messages = [
+            'FIRST', 'Poggers', 'EZ Clap', 'KEKW', '5Head', 'Pepega', 'MonkaS', 'PogChamp',
+            'no cap this is bussin fr fr', 'its giving main character energy', 'periodt 💅',
+            'bestie this aint it', 'why is this lowkey a vibe tho', 'not me crying rn',
+            'im literally deceased 💀', 'this hits different', 'say less fam', 'we love to see it',
+            'the way i screamed', 'im so here for this', 'this is sending me', 'absolutely unhinged',
+            'touch grass pls', 'go outside', 'rent free in my head', 'living in your walls',
+            'ratio + L + no bitches', 'skill issue tbh', 'cope harder', 'seethe and mald',
+            'based and redpilled', 'cringe take ngl', 'delete this chief', 'aint reading all that',
+            'TLDR please', 'ok boomer', 'sheesh', 'respectfully, what?', 'sus af',
+            'among us reference?', 'when the impostor is sus', 'sussy baka moment',
+            'skibidi toilet ohio rizz', 'sigma male grindset', 'alpha energy', 'beta behavior',
+            'big W', 'massive L', 'thats cap', 'no printer just fax', 'straight facts',
+            'im weak 😭', 'not me being called out', 'why you coming for me like this',
+            'the accuracy tho', 'felt this in my soul', 'my therapist gonna hear about this',
+            'adding this to my list of trauma', 'my depression said hi', 'anxiety has entered the chat',
+            'executive dysfunction moment', 'neurodivergent things', 'ADHD brain go brrr',
+            'hyperfixation activated', 'special interest unlocked', 'info dumping time',
+            'mom pick me up im scared', 'what in the wattpad is this', 'ao3 vibes',
+            'fanfiction energy', 'self insert much?', 'mary sue alert',
+            'plot armor is strong with this one', 'character development who?',
+            'sir this is a wendys', 'maam this is a mcdonalds', 'excuse me this is a library',
+            'we live in a society', 'bottom text', 'gamers rise up', 'heated gamer moment',
+            'git gud scrub', '1v1 me bro', 'ez game ez life', 'carried by teammates',
+            'lag excuse incoming', 'my team is trash', 'smurfs ruining the game',
+            'buff this nerf that', 'developer bias confirmed', 'pay to win btw',
+            'gacha ruined my life', 'f2p player struggles', 'whale problems',
+            'battlepass grind never ends', 'seasonal FOMO hits different',
+            'netflix and chill but make it anxiety', 'disney plus and depression',
+            'hulu and overthinking', 'amazon prime and existential crisis',
+            'spotify premium worth it tho', 'youtube ads are getting aggressive',
+            'tiktok algorithm knows me too well', 'instagram giving me trust issues',
+            'twitter is a warzone', 'reddit moment', 'discord mod behavior',
+            'facebook is for boomers', 'snapchat streaks are toxic',
+            'pinterest unrealistic expectations', 'linkedin fake positivity',
+            'my fyp is concerning', 'algorithm please explain', 'why am i here',
+            'what timeline is this', 'multiverse confirmed', 'glitch in the matrix',
+            'simulation theory looking real', 'npc behavior detected', 'main quest abandoned',
+            'side quests taking over my life', 'inventory full of regrets',
+            'skill points wasted on useless talents', 'leveling up is hard',
+            'respawn when', 'save point corrupted', 'game over man',
+            'press F to pay respects', 'F in chat', 'RIP my sanity',
+            'gone but not forgotten', 'taken too soon', 'they had so much potential',
+            'character arc incomplete', 'plot twist nobody asked for',
+            'writers really said sike', 'retcon incoming', 'canon divergent timeline',
+            'AU where everything is fine', 'fix it fic energy', 'hurt no comfort vibes',
+            'enemies to lovers but they stay enemies', 'found family trope supremacy',
+            'chosen one fatigue setting in', 'prophecy was fake news',
+            'mentor dies speedrun any%', 'power of friendship op pls nerf',
+            'love triangle more like love octagon', 'slow burn 100k words minimum',
+            'will they wont they for 17 seasons', 'series finale was a fever dream',
+            'manga was better', 'book adaptation when', 'movie tie-in cash grab',
+            'reboot nobody wanted', 'sequel hook dangling forever',
+            'prequel explaining nothing', 'spin off in different genre',
+            'crossover episode chaos', 'fourth wall has left the chat',
+            'breaking character constantly', 'method acting taken too far',
+            'oscar bait performance', 'razzie award winner', 'so bad its good',
+            'cult classic potential', 'underground hit vibes', 'mainstream appeal lost',
+            'niche audience only', 'you wouldnt get it', 'high iq required',
+            'rick and morty fans entered chat', 'to be fair copypasta moment',
+            'pickle rick funny haha', 'szechuan sauce discontinued',
+            'mcdonalds drive thru chaos', 'fast food tier list when',
+            'cooking shows unrealistic', 'gordon ramsay would cry',
+            'masterchef junior traumatizing', 'baking shows too wholesome',
+            'food network addiction real', 'mukbang asmr hits different',
+            'eating sounds make me uncomfortable', 'misophonia struggles',
+            'sensory overload incoming', 'noise canceling headphones savior',
+            'introvert safe space please', 'social battery at 1%',
+            'people are exhausting', 'hermit life calling my name',
+            'outside world overrated', 'indoor kid for life',
+            'vitamin d deficiency gang', 'pale vampire aesthetic',
+            'sun allergy is real', 'night owl supremacy', 'morning people are suspicious'
+        ];
+
+        const colors = [
+            'color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7',
+            'color-8', 'color-9', 'color-10', 'color-11', 'color-12', 'color-13', 'color-14', 'color-15'
+        ];
+
+        let messageIndex = 0;
+        let isPaused = false;
+        let isHidden = false;
+        let controlsHidden = false;
+        let nextMessageTimeout;
+
+        const chatContainer = document.getElementById('chatMessages');
+        const chatWidget = document.getElementById('chatWidget');
+        const chatHeader = document.getElementById('chatHeader');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const hideToggle = document.getElementById('hideToggle');
+        const controlsToggle = document.getElementById('controlsToggle');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const controlButtons = document.querySelector('.control-buttons');
+
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        chatHeader.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+
+        function dragStart(e) {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === chatHeader || e.target.parentNode === chatHeader) {
+                isDragging = true;
+                chatWidget.style.cursor = 'grabbing';
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                chatWidget.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            }
+        }
+
+        function dragEnd() {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+            chatWidget.style.cursor = 'default';
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+        clearBtn.addEventListener('click', clearChat);
+        hideToggle.addEventListener('click', toggleVisibility);
+        controlsToggle.addEventListener('click', toggleControls);
+
+        function togglePause() {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '▶️' : '⏸️';
+            pauseBtn.classList.toggle('active', isPaused);
+            statusIndicator.classList.toggle('paused', isPaused);
+
+            if (!isPaused) {
+                scheduleNextMessage();
+            } else {
+                clearTimeout(nextMessageTimeout);
+            }
+        }
+
+        function clearChat() {
+            chatContainer.innerHTML = '';
+        }
+
+        function toggleVisibility() {
+            isHidden = !isHidden;
+            chatWidget.classList.toggle('hidden', isHidden);
+            hideToggle.textContent = isHidden ? 'Show Chat' : 'Hide Chat';
+        }
+
+        function toggleControls() {
+            controlsHidden = !controlsHidden;
+            controlButtons.classList.toggle('hidden', controlsHidden);
+            controlsToggle.textContent = controlsHidden ? 'Show Controls' : 'Hide Controls';
+        }
+
+        function getRandomUsername() {
+            return usernames[Math.floor(Math.random() * usernames.length)];
+        }
+
+        function getRandomMessage() {
+            return messages[messageIndex++ % messages.length];
+        }
+
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function addMessage() {
+            if (isPaused) return;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+
+            const username = getRandomUsername();
+            const message = getRandomMessage();
+            const color = getRandomColor();
+
+            messageDiv.innerHTML = `
+                    <span class="username ${color}">${username}:</span>
+                    <span class="message-text">${message}</span>
+                `;
+
+            chatContainer.appendChild(messageDiv);
+
+            while (chatContainer.children.length > 30) {
+                chatContainer.removeChild(chatContainer.firstChild);
+            }
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function scheduleNextMessage() {
+            if (isPaused) return;
+
+            const delay = Math.random() * 3000 + 500;
+            nextMessageTimeout = setTimeout(() => {
+                addMessage();
+                scheduleNextMessage();
+            }, delay);
+        }
+
+        for (let i = 0; i < 15; i++) {
+            setTimeout(() => addMessage(), i * 100);
+        }
+
+        scheduleNextMessage();
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.ctrlKey) {
+                e.preventDefault();
+                togglePause();
+            }
+            if (e.code === 'Delete' && e.ctrlKey) {
+                e.preventDefault();
+                clearChat();
+            }
+            if (e.code === 'KeyH' && e.ctrlKey) {
+                e.preventDefault();
+                toggleVisibility();
+            }
+            if (e.code === 'KeyC' && e.ctrlKey && e.shiftKey) {
+                e.preventDefault();
+                toggleControls();
+            }
+        });
+    </script>
+</body>
+</html>
